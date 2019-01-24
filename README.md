@@ -1,5 +1,5 @@
 # MelodyBot
-Discord Bot
+Discord Bot using Discord PY
 # License
 
 MIT License
