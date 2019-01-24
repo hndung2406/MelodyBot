@@ -4,9 +4,14 @@
 # https://discordapp.com/oauth2/authorize?client_id=537470932420263958&scope=bot&permissions=67648
 import discord
 from discord.ext import commands
+import asyncio
+from itertools import cycle
+import youtube_dl
 
 TOKEN = "NTM3NDcwOTMyNDIwMjYzOTU4.DylumQ.wPV5QVD_mPYAiRQucfBYaYHSHZ4"
 client = commands.Bot(command_prefix='!')
+client.remove_command('help')
+status = ['Dota 2', 'Artifact', 'Hearthstone']
 
 
 def report_guild(guild):
@@ -25,6 +30,7 @@ def report_guild(guild):
 
 @client.event  # event decorator/wrapper
 async def on_ready():
+    await client.change_presence(status=discord.Status.online, activity=discord.Game(name='Dota 2'))
     print(f"We have login {client.user}")
 
 
@@ -44,13 +50,17 @@ async def on_member_join(member):
 
 
 @client.command()
-async def info(ctx):
-    await ctx.send(f'```\n'
-                   f'!exit: Exit the program\n'
-                   f'!count: Count the number of member in guild\n'
-                   f'!report: Report the status of member in guild\n'
-                   f'!repeat: Repeat what you have just entered\n'
-                   f'!clear: Clear the channel\n```')
+async def help(ctx):
+    embed = discord.Embed(
+        colour=discord.Colour.orange()
+    )
+    embed.set_author(name='Help')
+    embed.add_field(name='!exit', value='Exit the program', inline=False)
+    embed.add_field(name='!report', value='Report the status of member in guild', inline=False)
+    embed.add_field(name='!repeat', value='Repeat what you have just entered', inline=False)
+    embed.add_field(name='!count', value='Count the number of member in the guild', inline=False)
+    embed.add_field(name='!clear', value='Clear the channel', inline=False)
+    await ctx.send(embed=embed)
 
 
 @client.command()
@@ -86,4 +96,36 @@ async def clear(ctx):
     await channel.delete_messages(messages)
 
 
+@client.command()
+async def join(ctx):
+    channel = ctx.message.author.voice.channel
+    await channel.connect()
+
+
+@client.command()
+async def leave(ctx):
+    guild = ctx.message.guild
+    voice_client = guild.voice_client
+    await voice_client.disconnect()
+
+
+@client.command()
+async def play(ctx, url):
+    guild = ctx.message.guild
+    voice_client = guild.voice_client
+    player = await voice_client.create_ytdl_player(url)
+    player.start()
+
+
+# Change the status of the bot every 5 mins
+async def change_status():
+    await client.wait_until_ready()
+    msgs = cycle(status)
+    while not client.is_closed():
+        current_status = next(msgs)
+        await client.change_presence(status=discord.Status.online, activity=discord.Game(name=current_status))
+        await asyncio.sleep(300)
+
+
+client.loop.create_task(change_status())
 client.run(TOKEN)
